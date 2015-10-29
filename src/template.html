@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+        <title>
+            Создание музыки в KXStudio
+        </title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" />
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/3.3.0/ekko-lightbox.min.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery.tocify/1.9.0/stylesheets/jquery.tocify.min.css" />
+        <link rel="stylesheet" href="css/style.css" />
+
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/3.3.0/ekko-lightbox.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tocify/1.9.0/javascripts/jquery.tocify.min.js"></script>
+
+        <script type="text/javascript">
+            $(document).delegate('*[data-toggle="lightbox"]', 'click', function (event) {
+                event.preventDefault();
+                $(this).ekkoLightbox({always_show_close: false});
+            });
+            $(function () {
+                //Calls the tocify method on your HTML div.
+                $("#toc").tocify({
+                    hashGenerator: 'pretty',
+                    extendPage: false
+                });
+            });
+        </script>
+    </head>
+    <body>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-1"></div>
+                <div class="col-md-7 col-sm-7">
+                    <h1>
+                        Создание музыки в KXStudio
+                    </h1>
+                    {{010-intro.html}}
+
+                    <h2>
+                        Часть I. Сессия
+                    </h2>
+                    {{020-cadence.html}}
+                    {{030-claudia.html}}
+                    {{040-group-buses.html}}
+                    {{050-prepare-drums.html}}
+                    {{060-prepare-bass.html}}
+
+                    <h2>
+                        Часть II. Ядро композиции
+                    </h2>
+                    {{110-core.html}}
+                </div>
+                <div class="col-md-4 col-sm-5">
+                    <div id="toc"></div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
