@@ -60,7 +60,7 @@ function copy_image($source_path, $dest_path, $filename) {
         copy($source, $dest);
         $imagick = new \Imagick(realpath($dest));
         $imagick->setbackgroundcolor('rgb(64, 64, 64)');
-        $imagick->thumbnailImage(THUMB_WIDTH, THUMB_HEIGHT, true, false);
+        $imagick->thumbnailImage(THUMB_WIDTH, THUMB_HEIGHT, true);
         $blob = $imagick->getimageblob();
         file_put_contents($thumb, $blob);
     }
