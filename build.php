@@ -73,10 +73,9 @@ function image_callback($matches) {
     $alt_text = ucwords(str_replace('-', ' ', $image_name));
 
     $real_url = 'images/' . $filename;
-    $real_image = "<img src=\"$real_url\"  alt=\"$alt_text\">";
     $thumb_image = '<img src="images/thumbs/thumb-' . $filename . '" alt="' . $alt_text . '">';
 
-    $lightbox = "<a href=\"$real_url\" data-toggle=\"lightbox\" class=\"img-thumbnail\">$thumb_image</a>";
+    $lightbox = "<a href=\"$real_url\" data-toggle=\"lightbox\" data-title=\"Изображение: $filename\" class=\"img-thumbnail\">$thumb_image</a>";
     return $lightbox;
 }
 
@@ -97,10 +96,6 @@ function simple_copy($path_src, $path_out, $relative) {
 }
 
 function build($template_file, $output_file) {
-    $template = file_get_contents($template_file);
-    $html = preg_replace_callback('/\{\{([^}]+)\}\}/', "template_callback", $template);
-    file_put_contents($output_file, $html);
-    
     $path_out = dirname($output_file);
     $path_src = dirname($template_file);
     $out_css_path = $path_out . '/css';
@@ -111,6 +106,10 @@ function build($template_file, $output_file) {
     
     simple_copy($path_src, $path_out, 'css/style.css');
     simple_copy($path_src, $path_out, 'images/background.png');
+
+    $template = file_get_contents($template_file);
+    $html = preg_replace_callback('/\{\{([^}]+)\}\}/', "template_callback", $template);
+    file_put_contents($output_file, $html);
 }
 
 function main($argc, $argv) {
