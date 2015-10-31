@@ -8,10 +8,19 @@
 [KXStudio](http://kxstudio.linuxaudio.org)
 
 ## Требования
-Для сборки нужен PHP5 с поддержкой Imagick
+Для сборки нужен PHP v5.3.3 с поддержкой Imagick
+
+## Сборка
+Для очистки:
+
+`php build.php clean`
+
+Для сборки:
+
+`php build.php build`
 
 ## Вопросы и замечания
-Отправляйте по адресу.
+Отправляйте по адресу kxguide@mail.ru.
 
 ## Журнал изменений
 
