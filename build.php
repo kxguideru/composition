@@ -16,13 +16,13 @@ define('MSG_OPEN_IMAGE', 'Показать изображение');
  */
 function cleanup($output_path)
 {
-    $paths = [
+    $paths = array(
         '',
         '/images',
         '/images/thumbs',
         '/css',
         '/presets',
-    ];
+    );
 
     foreach ($paths as $path) {
         cleanup_dir($output_path . $path);
