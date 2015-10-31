@@ -1,3 +1,31 @@
+body {
+    background: url(../images/background.png);
+}
+
+.img-thumbnail {
+    margin-bottom: 16px;
+    margin-left: 16px;
+}
+.incut {
+    padding: 16px;
+    padding-bottom: 0;
+    margin-bottom: 16px;
+}
+
+.table {
+    background: #fefefe;
+}
+
+.table thead tr th.drums {
+    width: 10%;
+}
+
+code {
+    background: #ddd;
+}
+
+/* CALLOUTS */
+
 .bs-callout {
     padding: 20px;
     margin: 20px 0;
@@ -56,28 +84,6 @@
 }
 .bs-callout-info h4 {
     color: #5bc0de;
-}
-
-body {
-    background: url(../images/background.png);
-}
-
-.img-thumbnail {
-    margin-bottom: 16px;
-    margin-left: 16px;
-}
-.incut {
-    padding: 16px;
-    padding-bottom: 0;
-    margin-bottom: 16px;
-}
-
-.table {
-    background: #fefefe;
-}
-
-code {
-    background: #ddd;
 }
 
 /* TOCIFY */
