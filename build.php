@@ -7,8 +7,6 @@ define('ROOT_PATH', __DIR__);
 define('OUTPUT_PATH', ROOT_PATH . '/www');
 define('SRC_PATH', ROOT_PATH . '/src');
 
-define('MSG_OPEN_IMAGE', 'Показать изображение');
-
 /**
  * Cleanup output
  *
