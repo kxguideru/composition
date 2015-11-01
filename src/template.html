@@ -10,29 +10,6 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/3.3.0/ekko-lightbox.min.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery.tocify/1.9.0/stylesheets/jquery.tocify.min.css" />
         <link rel="stylesheet" href="css/style.css" />
-        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
-        <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/3.3.0/ekko-lightbox.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tocify/1.9.0/javascripts/jquery.tocify.min.js"></script>
-
-        <script type="text/javascript">
-            $(document).delegate('*[data-toggle="lightbox"]', 'click', function (event) {
-                event.preventDefault();
-                $(this).ekkoLightbox({
-                    always_show_close: true,
-                    loadingMessage: "Загрузка..."
-                });
-            });
-
-            $(function () {
-                //Calls the tocify method on your HTML div.
-                $("#toc").tocify({
-                    hashGenerator: 'pretty',
-                    extendPage: false
-                });
-            });
-        </script>
     </head>
     <body>
         <div class="container-fluid">
@@ -68,5 +45,29 @@
                 </div>
             </div>
         </div>
+
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/3.3.0/ekko-lightbox.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tocify/1.9.0/javascripts/jquery.tocify.min.js"></script>
+
+        <script type="text/javascript">
+            $(document).delegate('*[data-toggle="lightbox"]', 'click', function (event) {
+                event.preventDefault();
+                $(this).ekkoLightbox({
+                    always_show_close: true,
+                    loadingMessage: "Загрузка..."
+                });
+            });
+
+            $(function () {
+                //Calls the tocify method on your HTML div.
+                $("#toc").tocify({
+                    hashGenerator: 'pretty',
+                    extendPage: false
+                });
+            });
+        </script>
     </body>
 </html>
