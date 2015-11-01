@@ -19,6 +19,8 @@ function cleanup($output_path)
         '/images',
         '/images/thumbs',
         '/css',
+        '/js',
+        '/audio',
         '/presets',
     );
 
@@ -93,6 +95,18 @@ function image_callback($matches)
     return $lightbox;
 }
 
+function audio_callback($matches)
+{
+    $filename = $matches[1];
+    $caption = $matches[2];
+    $audio_tag = "<audio controls>\n" .
+        "<source src=\"audio/$filename\" type=\"audio/mpeg\" />\n" .
+        "<a href=\"audio/$filename\">Пример - $caption</a>\n" .
+        "Для воспроизведения аудио требуется браузер с поддержкой HTML5.\n" .
+        "</audio>";
+    return $audio_tag;
+}
+
 /**
  * Callback for template pattern, insert file
  *
@@ -101,10 +115,13 @@ function image_callback($matches)
  */
 function template_callback($matches)
 {
+    $image_pattern = '/\<img\s+src=\"images\/(([^\.]+)\.png)\"[^\>]+\>/';
+    $audio_pattern = '/\<a\s+href=\"audio\/([^\.]+\.mp3)\"[^\>]*\>([^\<]+)\<\/a\>/';
     $filename = $matches[1];
     $html = file_get_contents('src/' . $filename);
-    $image_pattern = '/\<img src=\"images\/(([^\.]+)\.png)\"[^\>]+\>/';
-    return preg_replace_callback($image_pattern, "image_callback", $html);
+    $html = preg_replace_callback($image_pattern, "image_callback", $html);
+    $html = preg_replace_callback($audio_pattern, "audio_callback", $html);
+    return $html;
 }
 
 /**
@@ -134,6 +151,10 @@ function copy_files($path_src, $path_out)
 {
     $files = glob("$path_src/*");
 
+    if (!file_exists($path_out)) {
+        mkdir($path_out, 0777, true);
+    }
+
     foreach ($files as $file) {
         if (is_file($file)) {
             copy_file($path_src, $path_out, basename($file));
@@ -152,9 +173,18 @@ function build($path_src, $path_out)
     $template_file = $path_src . '/template.html';
     $index_file = $path_out . '/index.html';
 
-    copy_file($path_src, $path_out, 'css/style.css');
     copy_file($path_src, $path_out, 'images/background.png');
-    copy_files($path_src . '/presets', $path_out . '/presets');
+
+    $dirs = array(
+        '/audio',
+        '/css',
+        '/js',
+        '/presets',
+    );
+
+    foreach ($dirs as $dir) {
+        copy_files($path_src . $dir, $path_out . $dir);
+    }
 
     $template = file_get_contents($template_file);
     $html = preg_replace_callback('/\{\{([^}]+)\}\}/', "template_callback", $template);
