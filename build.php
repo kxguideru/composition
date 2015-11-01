@@ -71,6 +71,7 @@ function copy_image($source_path, $dest_path, $filename)
         $imagick->setBackgroundColor('rgb(64, 64, 64)');
         $imagick->thumbnailImage(THUMB_WIDTH, THUMB_HEIGHT, true);
         $blob = $imagick->getImageBlob();
+        $imagick->clear();
         file_put_contents($thumb, $blob);
     }
 }
