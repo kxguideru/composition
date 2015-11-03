@@ -60,20 +60,59 @@ function copy_image($source_path, $dest_path, $filename)
 {
     $source = $source_path . '/' . $filename;
     $dest = $dest_path . '/' . $filename;
-    $thumb = $dest_path . '/thumbs/thumb-' . $filename;
+
+    $ext = '.' . pathinfo($source, PATHINFO_EXTENSION);
+    $thumb = $dest_path . '/thumbs/thumb-' . basename($filename, $ext) . '.jpg';
 
     if (!file_exists($dest) || !file_exists($thumb) ||
         filemtime($dest) < filemtime($source) ||
         filemtime($thumb) < filemtime($source)
     ) {
         copy($source, $dest);
-        $imagick = new \Imagick(realpath($dest));
-        $imagick->setBackgroundColor('rgb(64, 64, 64)');
-        $imagick->thumbnailImage(THUMB_WIDTH, THUMB_HEIGHT, true);
-        $blob = $imagick->getImageBlob();
-        $imagick->clear();
-        file_put_contents($thumb, $blob);
+        create_thumbnail($dest, $thumb, THUMB_HEIGHT);
+//        $imagick = new \Imagick(realpath($dest));
+//        $imagick->setBackgroundColor('rgb(64, 64, 64)');
+//        $imagick->thumbnailImage(THUMB_WIDTH, THUMB_HEIGHT, true);
+//        $blob = $imagick->getImageBlob();
+//        $imagick->clear();
+//        file_put_contents($thumb, $blob);
     }
+}
+
+/**
+ * Imagick::thumbnailImage() replacement
+ *
+ * @param $source_file An image
+ * @param $thumb_file Should be .jpg
+ * @param $size
+ */
+function create_thumbnail($original_file, $thumb_file, $size)
+{
+    // create new Imagick object
+    $image = new Imagick($original_file);
+
+    // Resizes to whichever is larger, width or height
+    if($image->getImageHeight() <= $image->getImageWidth())
+    {
+        // Resize image using the lanczos resampling algorithm based on width
+        $image->resizeImage($size,0,Imagick::FILTER_LANCZOS,1);
+    }
+    else
+    {
+        // Resize image using the lanczos resampling algorithm based on height
+        $image->resizeImage(0,$size,Imagick::FILTER_LANCZOS,1);
+    }
+
+    // Set to use jpeg compression
+    $image->setImageCompression(Imagick::COMPRESSION_JPEG);
+    // Set compression level (1 lowest quality, 100 highest quality)
+    $image->setImageCompressionQuality(75);
+    // Strip out unneeded meta data
+    $image->stripImage();
+    // Writes resultant image to output directory
+    $image->writeImage($thumb_file);
+    // Destroys Imagick object, freeing allocated resources in the process
+    $image->destroy();
 }
 
 /**
@@ -90,7 +129,8 @@ function image_callback($matches)
     $alt_text = ucwords(str_replace('-', ' ', $image_name));
 
     $real_url = 'images/' . $filename;
-    $thumb_image = '<img src="images/thumbs/thumb-' . $filename . '" alt="' . $alt_text . '">';
+    $ext = '.' . pathinfo($filename, PATHINFO_EXTENSION);
+    $thumb_image = '<img src="images/thumbs/thumb-' . basename($filename, $ext) . '.jpg" alt="' . $alt_text . '">';
 
     $lightbox = "<a href=\"$real_url\" data-toggle=\"lightbox\" data-title=\"Изображение: $filename\" class=\"img-thumbnail\">$thumb_image</a>";
     return $lightbox;
