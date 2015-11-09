@@ -375,7 +375,7 @@ function build($path_src, $path_out)
     }
 
     create_dir("$path_out/session");
-    //create_session_files("$path_out/session");
+    create_session_files("$path_out/session");
 
     create_dir("$path_out/audio");
     create_dir("$path_out/images/thumbs");
