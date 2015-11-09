@@ -199,6 +199,7 @@ function insert_files_template($has_audio, $has_session, $name)
 
         if ($has_audio) {
             $audio = str_replace('{{NAME}}', $name, $audio_template);
+            create_mp3(SRC_PATH . "/audio/$name.wav", OUTPUT_PATH . "/audio/$name.mp3");
         }
 
         if ($has_session) {
@@ -211,13 +212,13 @@ function insert_files_template($has_audio, $has_session, $name)
 
 function insert_files($text, $name)
 {
-    $has_audio = file_exists(OUTPUT_PATH . "/audio/$name.mp3");
+    $has_audio = file_exists(SRC_PATH . "/audio/$name.wav");
     $has_session = file_exists(OUTPUT_PATH . "/session/$name.zip");
 
     if ($has_audio || $has_session) {
         return $text . insert_files_template($has_audio, $has_session, $name);
     } else {
-        $has_audio = file_exists(OUTPUT_PATH . "/audio/$name-1.mp3");
+        $has_audio = file_exists(SRC_PATH . "/audio/$name-1.wav");
         $has_session = file_exists(OUTPUT_PATH . "/session/$name-1.zip");
 
         if ($has_audio || $has_session) {
@@ -235,20 +236,20 @@ function insert_files($text, $name)
 
             for ($i = 1; $i < $counter; $i++) {
                 $heading_name = $name . '-' . $i;
-                $has_audio = file_exists(OUTPUT_PATH . "/audio/$heading_name.mp3");
+                $has_audio = file_exists(SRC_PATH . "/audio/$heading_name.wav");
                 $has_session = file_exists(OUTPUT_PATH . "/session/$heading_name.zip");
                 $insert = insert_files_template($has_audio, $has_session, $heading_name);
                 $text = str_replace($headings[$i], $insert . $headings[$i], $text);
             }
 
-            $has_audio = file_exists(OUTPUT_PATH . "/audio/$name-$counter.mp3");
+            $has_audio = file_exists(SRC_PATH . "/audio/$name-$counter.wav");
             $has_session = file_exists(OUTPUT_PATH . "/session/$name-$counter.zip");
             $insert = insert_files_template($has_audio, $has_session, "$name-$counter");
             $text .= $insert;
         }
-
-        return $text;
     }
+
+    return $text;
 }
 
 /**
