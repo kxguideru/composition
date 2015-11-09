@@ -31,7 +31,7 @@ function create_dir($path)
 function get_branch_list($path)
 {
     chdir($path);
-    $output = $branches = [];
+    $output = $branches = array();
     exec('git branch -r', $output);
 
     foreach ($output as $string) {
