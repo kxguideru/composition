@@ -6,6 +6,9 @@ define('THUMB_HEIGHT', 150);
 define('ROOT_PATH', __DIR__);
 define('OUTPUT_PATH', ROOT_PATH . '/www');
 define('SRC_PATH', ROOT_PATH . '/src');
+define('SESSION_PATH', ROOT_PATH . '/session-files');
+
+define('SESSION_REPO', 'https://github.com/kxguideru/composition-files/');
 
 /**
  * Create directory if not exists
@@ -16,6 +19,54 @@ function create_dir($path)
 {
     if (!file_exists($path)) {
         mkdir($path, 0777, true);
+    }
+}
+
+/**
+ * Get git branch names for repo path
+ *
+ * @param $path
+ * @return array
+ */
+function get_branch_list($path)
+{
+    chdir($path);
+    $output = $branches = [];
+    exec('git branch -r', $output);
+
+    foreach ($output as $string) {
+        $trim = trim($string);
+        $parts = explode('/', $trim);
+
+        if ($parts[1] != 'HEAD' && $parts[1] != 'master') {
+            $branches[$parts[1]] = $trim;
+        }
+    }
+
+    return $branches;
+}
+
+/**
+ * Create session files from git branches
+ *
+ * @param $output_path Zip path
+ */
+function create_session_files($output_path)
+{
+    $path = SESSION_PATH;
+
+    if (!file_exists($path)) {
+        exec('git clone ' . SESSION_REPO . ' ' . $path);
+    } else {
+        chdir($path);
+        exec('git pull');
+    }
+
+    $branches = get_branch_list($path);
+    chdir($path);
+
+    foreach ($branches as $name => $branch) {
+        exec("git archive -o $output_path/$name.zip $branch");
     }
 }
 
@@ -48,7 +99,8 @@ function cleanup($output_path)
  * @param $dir
  * @return bool|null
  */
-function is_dir_empty($dir) {
+function is_dir_empty($dir)
+{
     if (!is_readable($dir)) return null;
     $handle = opendir($dir);
 
@@ -126,6 +178,72 @@ function create_mp3($original_file, $mp3_file, $options = '-V2')
     }
 }
 
+function insert_files_template($has_audio, $has_session, $name)
+{
+    $session_template = "Скачать <a href=\"session/{{NAME}}.zip\">состояние сессии</a>.";
+    $audio_template = "<audio controls>\n" .
+        "<source src=\"audio/{{NAME}}.mp3\" type=\"audio/mpeg\" />\n" .
+        "<a href=\"audio/{{NAME}}.mp3\">скачать</a>\n" .
+        "Для воспроизведения аудио требуется браузер с поддержкой HTML5.\n" .
+        "</audio></p>";
+
+    if ($has_audio || $has_session) {
+        $session = $audio = "";
+
+        if ($has_audio) {
+            $audio = str_replace('{{NAME}}', $name, $audio_template);
+        }
+
+        if ($has_session) {
+            $session = str_replace('{{NAME}}', $name, $session_template);
+        }
+
+        return "<p><div style='float: right;'><em>$session</em></div>Промежуточный рендер:</p>$audio";
+    }
+}
+
+function insert_files($text, $name)
+{
+    $has_audio = file_exists(OUTPUT_PATH . "/audio/$name.mp3");
+    $has_session = file_exists(OUTPUT_PATH . "/session/$name.zip");
+
+    if ($has_audio || $has_session) {
+        return $text . insert_files_template($has_audio, $has_session, $name);
+    } else {
+        $has_audio = file_exists(OUTPUT_PATH . "/audio/$name-1.mp3");
+        $has_session = file_exists(OUTPUT_PATH . "/session/$name-1.zip");
+
+        if ($has_audio || $has_session) {
+            preg_match_all("/<(h\d*)>[^<]*/i", $text, $matches, PREG_SET_ORDER);
+            $headings = array();
+            $counter = 0;
+
+            foreach ($matches as $val) {
+                $type = $val[1];
+
+                if (strtolower($type) == 'h4') {
+                    $headings[$counter++] = $val[0];
+                }
+            }
+
+            for ($i = 1; $i < $counter; $i++) {
+                $heading_name = $name . '-' . $i;
+                $has_audio = file_exists(OUTPUT_PATH . "/audio/$heading_name.mp3");
+                $has_session = file_exists(OUTPUT_PATH . "/session/$heading_name.zip");
+                $insert = insert_files_template($has_audio, $has_session, $heading_name);
+                $text = str_replace($headings[$i], $insert . $headings[$i], $text);
+            }
+
+            $has_audio = file_exists(OUTPUT_PATH . "/audio/$name-$counter.mp3");
+            $has_session = file_exists(OUTPUT_PATH . "/session/$name-$counter.zip");
+            $insert = insert_files_template($has_audio, $has_session, "$name-$counter");
+            $text .= $insert;
+        }
+
+        return $text;
+    }
+}
+
 /**
  * Imagick::thumbnailImage() replacement
  *
@@ -178,29 +296,6 @@ function image_callback($matches)
 }
 
 /**
- * Callback function for audio files
- *
- * @param $matches
- * @return string
- */
-function audio_callback($matches)
-{
-    $filename = $matches[1];
-    $caption = $matches[2];
-
-    $ext = '.' . pathinfo($filename, PATHINFO_EXTENSION);
-    $mp3_filename = basename($filename, $ext) . '.mp3';
-    create_mp3(SRC_PATH . "/audio/$filename", OUTPUT_PATH . "/audio/$mp3_filename");
-
-    $audio_tag = "<audio controls>\n" .
-        "<source src=\"audio/$mp3_filename\" type=\"audio/mpeg\" />\n" .
-        "<a href=\"audio/$mp3_filename\">$caption</a>\n" .
-        "Для воспроизведения аудио требуется браузер с поддержкой HTML5.\n" .
-        "</audio>";
-    return $audio_tag;
-}
-
-/**
  * Callback for template pattern, insert file
  *
  * @param $matches
@@ -211,9 +306,9 @@ function template_callback($matches)
     $image_pattern = '/\<img\s+src=\"images\/(([^\.]+)\.png)\"[^\>]+\>/';
     $audio_pattern = '/\<a\s+href=\"audio\/([^\.]+\.wav)\"[^\>]*\>([^\<]+)\<\/a\>/';
     $filename = $matches[1];
-    $html = file_get_contents('src/' . $filename);
+    $html = file_get_contents(SRC_PATH . '/' . $filename);
     $html = preg_replace_callback($image_pattern, "image_callback", $html);
-    $html = preg_replace_callback($audio_pattern, "audio_callback", $html);
+    $html = insert_files($html, basename($filename, '.html'));
     return $html;
 }
 
@@ -267,7 +362,6 @@ function build($path_src, $path_out)
         '/css',
         '/js',
         '/files',
-        '/session',
     );
 
     foreach ($dirs as $dir) {
@@ -275,6 +369,8 @@ function build($path_src, $path_out)
     }
 
     create_dir("$path_out/session");
+    //create_session_files("$path_out/session");
+
     create_dir("$path_out/audio");
     create_dir("$path_out/images/thumbs");
     copy_file($path_src, $path_out, 'images/background.png');
