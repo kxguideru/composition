@@ -6,22 +6,86 @@ define('THUMB_HEIGHT', 150);
 define('ROOT_PATH', __DIR__);
 define('OUTPUT_PATH', ROOT_PATH . '/www');
 define('SRC_PATH', ROOT_PATH . '/src');
+define('SESSION_PATH', ROOT_PATH . '/session-files');
+
+define('SESSION_REPO', 'https://github.com/kxguideru/composition-files/');
+
+/**
+ * Create directory if not exists
+ *
+ * @param string $path
+ */
+function create_dir($path)
+{
+    if (!file_exists($path)) {
+        mkdir($path, 0777, true);
+    }
+}
+
+/**
+ * Get git branch names for repo path
+ *
+ * @param $path
+ * @return array
+ */
+function get_branch_list($path)
+{
+    chdir($path);
+    $output = $branches = [];
+    exec('git branch -r', $output);
+
+    foreach ($output as $string) {
+        $trim = trim($string);
+        $parts = explode('/', $trim);
+
+        if ($parts[1] != 'HEAD' && $parts[1] != 'master') {
+            $branches[$parts[1]] = $trim;
+        }
+    }
+
+    return $branches;
+}
+
+/**
+ * Create session files from git branches
+ *
+ * @param $output_path Zip path
+ */
+function create_session_files($output_path)
+{
+    $path = SESSION_PATH;
+
+    if (!file_exists($path)) {
+        exec('git clone ' . SESSION_REPO . ' ' . $path);
+    } else {
+        chdir($path);
+        exec('git pull');
+    }
+
+    $branches = get_branch_list($path);
+    chdir($path);
+
+    foreach ($branches as $name => $branch) {
+        exec("git archive -o $output_path/$name.zip $branch");
+    }
+}
 
 /**
  * Cleanup output
  *
- * @param $output_path
+ * @param string $output_path
  */
 function cleanup($output_path)
 {
     $paths = array(
-        '',
-        '/images',
         '/images/thumbs',
+        '/images',
         '/css',
         '/js',
         '/audio',
-        '/presets',
+        '/session',
+        '/files',
+        '',
     );
 
     foreach ($paths as $path) {
@@ -30,21 +94,43 @@ function cleanup($output_path)
 }
 
 /**
+ * Check if directory is empty
+ *
+ * @param $dir
+ * @return bool|null
+ */
+function is_dir_empty($dir)
+{
+    if (!is_readable($dir)) return null;
+    $handle = opendir($dir);
+
+    while (false !== ($entry = readdir($handle))) {
+        if ($entry != "." && $entry != "..") {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
  * Cleanup directory
  *
- * @param $path
+ * @param string $path
  */
 function cleanup_dir($path)
 {
-    if (!file_exists($path)) {
-        mkdir($path, 0777, true);
-    }
+    if (file_exists($path) && is_dir($path)) {
+        $files = glob("$path/*");
 
-    $files = glob("$path/*");
+        foreach ($files as $file) {
+            if (is_file($file)) {
+                unlink($file);
+            }
+        }
 
-    foreach ($files as $file) {
-        if (is_file($file)) {
-            unlink($file);
+        if (is_dir_empty($path)) {
+            rmdir($path);
         }
     }
 }
@@ -53,65 +139,143 @@ function cleanup_dir($path)
  * Copy image and create thumbnail
  *
  * @param $source_path
- * @param $dest_path
+ * @param $output_path
  * @param $filename
+ * @return Thumbnail dimensions
  */
-function copy_image($source_path, $dest_path, $filename)
+function copy_image($source_path, $output_path, $filename)
 {
     $source = $source_path . '/' . $filename;
-    $dest = $dest_path . '/' . $filename;
+    $output = $output_path . '/' . $filename;
 
     $ext = '.' . pathinfo($source, PATHINFO_EXTENSION);
-    $thumb = $dest_path . '/thumbs/thumb-' . basename($filename, $ext) . '.jpg';
+    $thumb = $output_path . '/thumbs/thumb-' . basename($filename, $ext) . '.jpg';
 
-    if (!file_exists($dest) || !file_exists($thumb) ||
-        filemtime($dest) < filemtime($source) ||
+    if (!file_exists($output) || !file_exists($thumb) ||
+        filemtime($output) < filemtime($source) ||
         filemtime($thumb) < filemtime($source)
     ) {
-        copy($source, $dest);
-        create_thumbnail($dest, $thumb, THUMB_HEIGHT);
-//        $imagick = new \Imagick(realpath($dest));
-//        $imagick->setBackgroundColor('rgb(64, 64, 64)');
-//        $imagick->thumbnailImage(THUMB_WIDTH, THUMB_HEIGHT, true);
-//        $blob = $imagick->getImageBlob();
-//        $imagick->clear();
-//        file_put_contents($thumb, $blob);
+        copy($source, $output);
+        create_thumbnail($output, $thumb, THUMB_HEIGHT);
+    }
+
+    $size = getimagesize($thumb);
+    return array_slice($size, 0, 2);
+}
+
+/**
+ * Encode WAV to MP3 using LAME
+ *
+ * @param string $original_file WAV file
+ * @param string $mp3_file Destination MP3 file
+ * @param string $options LAME options
+ */
+function create_mp3($original_file, $mp3_file, $options = '-V2')
+{
+    if (!file_exists($mp3_file) || filemtime($mp3_file) < filemtime($original_file)) {
+        $lame = 'lame';
+
+        if (file_exists('../../srv/lame/bin/lame')) {
+            $lame = '../../srv/lame/bin/lame';
+        }
+
+        $command = "$lame $options $original_file $mp3_file";
+        exec($command);
+    }
+}
+
+function insert_files_template($has_audio, $has_session, $name)
+{
+    $session_template = "Скачать <a href=\"session/{{NAME}}.zip\">состояние сессии</a>.";
+    $audio_template = "<audio controls>\n" .
+        "<source src=\"audio/{{NAME}}.mp3\" type=\"audio/mpeg\" />\n" .
+        "<a href=\"audio/{{NAME}}.mp3\">скачать</a>\n" .
+        "Для воспроизведения аудио требуется браузер с поддержкой HTML5.\n" .
+        "</audio></p>";
+
+    if ($has_audio || $has_session) {
+        $session = $audio = "";
+
+        if ($has_audio) {
+            $audio = str_replace('{{NAME}}', $name, $audio_template);
+        }
+
+        if ($has_session) {
+            $session = str_replace('{{NAME}}', $name, $session_template);
+        }
+
+        return "<p><div style='float: right;'><em>$session</em></div>Промежуточный рендер:</p>$audio";
+    }
+}
+
+function insert_files($text, $name)
+{
+    $has_audio = file_exists(OUTPUT_PATH . "/audio/$name.mp3");
+    $has_session = file_exists(OUTPUT_PATH . "/session/$name.zip");
+
+    if ($has_audio || $has_session) {
+        return $text . insert_files_template($has_audio, $has_session, $name);
+    } else {
+        $has_audio = file_exists(OUTPUT_PATH . "/audio/$name-1.mp3");
+        $has_session = file_exists(OUTPUT_PATH . "/session/$name-1.zip");
+
+        if ($has_audio || $has_session) {
+            preg_match_all("/<(h\d*)>[^<]*/i", $text, $matches, PREG_SET_ORDER);
+            $headings = array();
+            $counter = 0;
+
+            foreach ($matches as $val) {
+                $type = $val[1];
+
+                if (strtolower($type) == 'h4') {
+                    $headings[$counter++] = $val[0];
+                }
+            }
+
+            for ($i = 1; $i < $counter; $i++) {
+                $heading_name = $name . '-' . $i;
+                $has_audio = file_exists(OUTPUT_PATH . "/audio/$heading_name.mp3");
+                $has_session = file_exists(OUTPUT_PATH . "/session/$heading_name.zip");
+                $insert = insert_files_template($has_audio, $has_session, $heading_name);
+                $text = str_replace($headings[$i], $insert . $headings[$i], $text);
+            }
+
+            $has_audio = file_exists(OUTPUT_PATH . "/audio/$name-$counter.mp3");
+            $has_session = file_exists(OUTPUT_PATH . "/session/$name-$counter.zip");
+            $insert = insert_files_template($has_audio, $has_session, "$name-$counter");
+            $text .= $insert;
+        }
+
+        return $text;
     }
 }
 
 /**
  * Imagick::thumbnailImage() replacement
  *
- * @param $source_file An image
- * @param $thumb_file Should be .jpg
- * @param $size
+ * @param string $original_file An image
+ * @param string $thumb_file Should be .jpg
+ * @param int $size
  */
 function create_thumbnail($original_file, $thumb_file, $size)
 {
-    // create new Imagick object
     $image = new Imagick($original_file);
+    $columns = $image->getImageWidth();
+    $rows = $image->getImageHeight();
 
-    // Resizes to whichever is larger, width or height
-    if($image->getImageHeight() <= $image->getImageWidth())
-    {
-        // Resize image using the lanczos resampling algorithm based on width
-        $image->resizeImage($size,0,Imagick::FILTER_LANCZOS,1);
-    }
-    else
-    {
-        // Resize image using the lanczos resampling algorithm based on height
-        $image->resizeImage(0,$size,Imagick::FILTER_LANCZOS,1);
+    if ($rows <= $columns) {
+        $columns = $size;
+        $rows = 0;
+    } else {
+        $columns = 0;
+        $rows = $size;
     }
 
-    // Set to use jpeg compression
+    $image->resizeImage($columns, $rows, Imagick::FILTER_LANCZOS, 1);
     $image->setImageCompression(Imagick::COMPRESSION_JPEG);
-    // Set compression level (1 lowest quality, 100 highest quality)
     $image->setImageCompressionQuality(75);
-    // Strip out unneeded meta data
     $image->stripImage();
-    // Writes resultant image to output directory
     $image->writeImage($thumb_file);
-    // Destroys Imagick object, freeing allocated resources in the process
     $image->destroy();
 }
 
@@ -125,27 +289,16 @@ function image_callback($matches)
 {
     $filename = $matches[1];
     $image_name = $matches[2];
-    copy_image(SRC_PATH . '/images', OUTPUT_PATH . '/images', $filename);
+    $thumb_size = copy_image(SRC_PATH . '/images', OUTPUT_PATH . '/images', $filename);
+    $thumb_style = "width: $thumb_size[0]px; height: $thumb_size[1]px;";
     $alt_text = ucwords(str_replace('-', ' ', $image_name));
 
     $real_url = 'images/' . $filename;
     $ext = '.' . pathinfo($filename, PATHINFO_EXTENSION);
-    $thumb_image = '<img src="images/thumbs/thumb-' . basename($filename, $ext) . '.jpg" alt="' . $alt_text . '">';
+    $thumb_image = '<img style="' . $thumb_style . '" src="images/thumbs/thumb-' . basename($filename, $ext) . '.jpg" alt="' . $alt_text . '">';
 
     $lightbox = "<a href=\"$real_url\" data-toggle=\"lightbox\" data-title=\"Изображение: $filename\" class=\"img-thumbnail\">$thumb_image</a>";
     return $lightbox;
-}
-
-function audio_callback($matches)
-{
-    $filename = $matches[1];
-    $caption = $matches[2];
-    $audio_tag = "<audio controls>\n" .
-        "<source src=\"audio/$filename\" type=\"audio/mpeg\" />\n" .
-        "<a href=\"audio/$filename\">Пример - $caption</a>\n" .
-        "Для воспроизведения аудио требуется браузер с поддержкой HTML5.\n" .
-        "</audio>";
-    return $audio_tag;
 }
 
 /**
@@ -157,11 +310,11 @@ function audio_callback($matches)
 function template_callback($matches)
 {
     $image_pattern = '/\<img\s+src=\"images\/(([^\.]+)\.png)\"[^\>]+\>/';
-    $audio_pattern = '/\<a\s+href=\"audio\/([^\.]+\.mp3)\"[^\>]*\>([^\<]+)\<\/a\>/';
+    $audio_pattern = '/\<a\s+href=\"audio\/([^\.]+\.wav)\"[^\>]*\>([^\<]+)\<\/a\>/';
     $filename = $matches[1];
-    $html = file_get_contents('src/' . $filename);
+    $html = file_get_contents(SRC_PATH . '/' . $filename);
     $html = preg_replace_callback($image_pattern, "image_callback", $html);
-    $html = preg_replace_callback($audio_pattern, "audio_callback", $html);
+    $html = insert_files($html, basename($filename, '.html'));
     return $html;
 }
 
@@ -190,11 +343,8 @@ function copy_file($path_src, $path_out, $relative)
  */
 function copy_files($path_src, $path_out)
 {
+    create_dir($path_out);
     $files = glob("$path_src/*");
-
-    if (!file_exists($path_out)) {
-        mkdir($path_out, 0777, true);
-    }
 
     foreach ($files as $file) {
         if (is_file($file)) {
@@ -214,18 +364,22 @@ function build($path_src, $path_out)
     $template_file = $path_src . '/template.html';
     $index_file = $path_out . '/index.html';
 
-    copy_file($path_src, $path_out, 'images/background.png');
-
     $dirs = array(
-        '/audio',
         '/css',
         '/js',
-        '/presets',
+        '/files',
     );
 
     foreach ($dirs as $dir) {
         copy_files($path_src . $dir, $path_out . $dir);
     }
+
+    create_dir("$path_out/session");
+    //create_session_files("$path_out/session");
+
+    create_dir("$path_out/audio");
+    create_dir("$path_out/images/thumbs");
+    copy_file($path_src, $path_out, 'images/background.png');
 
     $template = file_get_contents($template_file);
     $html = preg_replace_callback('/\{\{([^}]+)\}\}/', "template_callback", $template);
