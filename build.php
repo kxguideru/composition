@@ -66,7 +66,9 @@ function create_session_files($output_path)
     chdir($path);
 
     foreach ($branches as $name => $branch) {
-        exec("git archive -o $output_path/$name.zip $branch");
+        if (substr($name, 0, 4) != "HEAD") {
+            exec("git archive -o $output_path/$name.zip $branch");
+        }
     }
 }
 
@@ -85,6 +87,7 @@ function cleanup($output_path)
         '/audio',
         '/session',
         '/files',
+        '/fonts',
         '',
     );
 
@@ -141,7 +144,7 @@ function cleanup_dir($path)
  * @param $source_path
  * @param $output_path
  * @param $filename
- * @return Thumbnail dimensions
+ * @return array Thumbnail dimensions
  */
 function copy_image($source_path, $output_path, $filename)
 {
@@ -185,6 +188,14 @@ function create_mp3($original_file, $mp3_file, $options = '-V2')
     }
 }
 
+/**
+ * Session/mp3 link template
+ *
+ * @param $has_audio
+ * @param $has_session
+ * @param $name
+ * @return string
+ */
 function insert_files_template($has_audio, $has_session, $name)
 {
     $session_template = "Скачать <a href=\"session/{{NAME}}.zip\">состояние сессии</a>.";
@@ -210,6 +221,13 @@ function insert_files_template($has_audio, $has_session, $name)
     }
 }
 
+/**
+ * Insert session/mp3 links
+ *
+ * @param $text
+ * @param $name
+ * @return mixed|string
+ */
 function insert_files($text, $name)
 {
     $has_audio = file_exists(SRC_PATH . "/audio/$name.wav");
@@ -312,7 +330,6 @@ function image_callback($matches)
 function template_callback($matches)
 {
     $image_pattern = '/\<img\s+src=\"images\/(([^\.]+)\.png)\"[^\>]+\>/';
-    $audio_pattern = '/\<a\s+href=\"audio\/([^\.]+\.wav)\"[^\>]*\>([^\<]+)\<\/a\>/';
     $filename = $matches[1];
     $html = file_get_contents(SRC_PATH . '/' . $filename);
     $html = preg_replace_callback($image_pattern, "image_callback", $html);
@@ -370,6 +387,7 @@ function build($path_src, $path_out)
         '/css',
         '/js',
         '/files',
+        '/fonts',
     );
 
     foreach ($dirs as $dir) {
