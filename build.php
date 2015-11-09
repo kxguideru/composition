@@ -217,7 +217,15 @@ function insert_files_template($has_audio, $has_session, $name)
             $session = str_replace('{{NAME}}', $name, $session_template);
         }
 
-        return "<p><div style='float: right;'><em>$session</em></div>Промежуточный рендер:</p>$audio";
+        $html = "<p><div style=\"float: right;\"><em>$session</em></div>";
+
+        if ($audio) {
+            $html .= "Промежуточный рендер:</p>$audio";
+        } else {
+            $html .= '&nbsp;</p>';
+        }
+
+        return $html;
     }
 }
 
@@ -378,7 +386,7 @@ function copy_files($path_src, $path_out)
  * @param $path_src
  * @param $path_out
  */
-function build($path_src, $path_out)
+function build($path_src, $path_out, $is_fast = false)
 {
     $template_file = $path_src . '/template.html';
     $index_file = $path_out . '/index.html';
@@ -395,7 +403,10 @@ function build($path_src, $path_out)
     }
 
     create_dir("$path_out/session");
-    create_session_files("$path_out/session");
+
+    if (!$is_fast) {
+        create_session_files("$path_out/session");
+    }
 
     create_dir("$path_out/audio");
     create_dir("$path_out/images/thumbs");
@@ -428,11 +439,16 @@ function main($argc, $argv)
                 build(SRC_PATH, OUTPUT_PATH);
                 return;
 
+            case "fastbuild":
+                echo "Fast building...\n";
+                build(SRC_PATH, OUTPUT_PATH, true);
+                return;
+
             default:
         }
     }
 
-    echo "Usage: php build.php {clean|build}\n\n";
+    echo "Usage: php build.php {clean|build|fastbuild}\n\n";
 }
 
 main($argc, $argv);

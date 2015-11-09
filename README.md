@@ -16,6 +16,7 @@
 
 - Для очистки: `php build.php clean`
 - Для сборки: `php build.php build`
+- Для сборки без загрузки состояний сессий: `php build.php fastbuild`
 
 ## Вопросы и замечания
 
