@@ -174,9 +174,10 @@ function create_mp3($original_file, $mp3_file, $options = '-V2')
 {
     if (!file_exists($mp3_file) || filemtime($mp3_file) < filemtime($original_file)) {
         $lame = 'lame';
+        $env = getenv('OPENSHIFT_REPO_DIR');
 
-        if (file_exists('../../srv/lame/bin/lame')) {
-            $lame = '../../srv/lame/bin/lame';
+        if (file_exists($env . '/srv/lame/bin/lame')) {
+            $lame = $env . '/srv/lame/bin/lame';
         }
 
         $command = "$lame $options $original_file $mp3_file";
