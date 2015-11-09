@@ -173,7 +173,13 @@ function copy_image($source_path, $output_path, $filename)
 function create_mp3($original_file, $mp3_file, $options = '-V2')
 {
     if (!file_exists($mp3_file) || filemtime($mp3_file) < filemtime($original_file)) {
-        $command = "lame $options $original_file $mp3_file";
+        $lame = 'lame';
+
+        if (file_exists('../../srv/lame/bin/lame')) {
+            $lame = '../../srv/lame/bin/lame';
+        }
+
+        $command = "$lame $options $original_file $mp3_file";
         exec($command);
     }
 }

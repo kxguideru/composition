@@ -202,8 +202,8 @@
 			}; // time.timesplit
 
 			time.showtime = function () {
-				var position_title = 'Click to Reset<hr style="padding:0; margin:0;" />Position: ';
-				var length_title = 'Click to Reset<hr style="padding:0; margin:0;" />Length: ';
+				var position_title = 'Нажмите для сброса<hr style="padding:0; margin:0;" />Позиция: ';
+				var length_title = 'Нажмите для сброса<hr style="padding:0; margin:0;" />Продолжительность: ';
 				if (!song.paused) {
 					$(time).html(time.timesplit(song.currentTime));
 					$(time).attr({'title': length_title + (time.timesplit(song.duration))});
